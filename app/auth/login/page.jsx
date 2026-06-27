@@ -56,7 +56,7 @@ export default function LoginPage() {
             <div className="flex size-12 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-xl">
               TM
             </div>
-            <h1 className="text-2xl font-bold text-foreground">TaskMgr</h1>
+            <h1 className="text-2xl font-bold text-foreground">DevTracker</h1>
           </div>
 
           {/* Title */}
@@ -134,7 +134,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-6">
-          Employee Task Management System © 2026
+          DevTracker © 2026
         </p>
       </div>
     </div>

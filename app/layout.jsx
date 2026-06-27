@@ -10,7 +10,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata = {
-  title: 'Employee Task Management',
+  title: 'DevTracker',
   description: 'Manage tasks and team progress efficiently',
   generator: 'v0.app',
   icons: {

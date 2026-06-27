@@ -63,7 +63,7 @@ export function Sidebar() {
             <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
               TM
             </div>
-            <span className="font-semibold text-foreground">TaskMgr</span>
+            <span className="font-semibold text-foreground">DevTracker</span>
           </div>
 
           {/* Navigation */}
