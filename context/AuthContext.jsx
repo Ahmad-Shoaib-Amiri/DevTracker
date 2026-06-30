@@ -1,70 +1,84 @@
 'use client'
 
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
+import { login as loginService, getProfile } from '@/services/authService'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const login = (email, password) => {
-    setIsLoading(true)
-    setTimeout(() => {
-      // Simulate authentication
-      if (email === 'admin@task.com' && password === 'admin') {
-        const userData = {
-          id: 1,
-          name: 'Admin User',
-          email: 'admin@task.com',
-          role: 'admin',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
-        }
-        setUser(userData)
-        localStorage.setItem('user', JSON.stringify(userData))
-      } else if (email === 'developer@task.com' && password === 'dev123') {
-        const userData = {
-          id: 2,
-          name: 'John Developer',
-          email: 'developer@task.com',
-          role: 'developer',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=dev',
-        }
-        setUser(userData)
-        localStorage.setItem('user', JSON.stringify(userData))
-      } else if (email === 'trainee@task.com' && password === 'trainee') {
-        const userData = {
-          id: 3,
-          name: 'Sarah Trainee',
-          email: 'trainee@task.com',
-          role: 'trainee',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=trainee',
-        }
-        setUser(userData)
-        localStorage.setItem('user', JSON.stringify(userData))
-      }
+  // Load user when the app starts
+  useEffect(() => {
+    initializeAuth()
+  }, [])
+
+  const initializeAuth = async () => {
+    const token = localStorage.getItem('token')
+
+    if (!token) {
       setIsLoading(false)
-    }, 500)
-  }
+      return
+    }
 
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem('user')
-  }
+    try {
+      const profile = await getProfile()
+      setUser(profile)
+    } catch (error) {
+      console.error(error)
 
-  const initializeAuth = () => {
-    const storedUser = localStorage.getItem('user')
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser))
-      } catch (error) {
-        localStorage.removeItem('user')
-      }
+      localStorage.removeItem('token')
+      setUser(null)
+    } finally {
+      setIsLoading(false)
     }
   }
 
+  const login = async (email, password) => {
+    try {
+      setIsLoading(true)
+
+      const data = await loginService({
+        email,
+        password,
+      })
+
+      // Save JWT
+      localStorage.setItem('token', data.token)
+
+      // Save logged-in user
+      setUser({
+        _id: data._id,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+      })
+
+      return data
+    } catch (error) {
+      console.error(error)
+      throw error
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const logout = () => {
+    localStorage.removeItem('token')
+    setUser(null)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, initializeAuth }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        login,
+        logout,
+        initializeAuth,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
@@ -72,8 +86,10 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   const context = useContext(AuthContext)
+
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider')
   }
+
   return context
 }

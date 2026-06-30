@@ -21,18 +21,22 @@ export default function LoginPage() {
     }
   }, [user, router])
 
-  const handleLogin = (e) => {
-    e.preventDefault()
-    setError('')
+const handleLogin = async (e) => {
+  e.preventDefault()
+  setError('')
 
-    if (!email || !password) {
-      setError('Please fill in all fields')
-      return
-    }
-
-    login(email, password)
-    setPassword('')
+  if (!email || !password) {
+    setError('Please fill in all fields')
+    return
   }
+
+  try {
+    await login(email, password)
+    setPassword('')
+  } catch (err) {
+    setError(err.response?.data?.message || 'Invalid email or password')
+  }
+}
 
   const demoAccounts = [
     { email: 'admin@task.com', password: 'admin', role: 'Admin' },
@@ -105,17 +109,17 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? <LoadingSpinner size="sm" /> : 'Sign In'}
-            </Button>
+<Button
+  type="submit"
+  className="w-full"
+  disabled={isLoading}
+>
+  {isLoading ? <LoadingSpinner size="sm" /> : 'Sign In'}
+</Button>
           </form>
 
           {/* Demo Accounts */}
-          <div className="border-t border-border pt-6">
+          {/* <div className="border-t border-border pt-6">
             <p className="text-xs text-center text-muted-foreground mb-3 font-medium">Demo Accounts</p>
             <div className="space-y-2">
               {demoAccounts.map((account) => (
@@ -129,7 +133,7 @@ export default function LoginPage() {
                 </button>
               ))}
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Footer */}
