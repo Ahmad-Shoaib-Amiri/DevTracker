@@ -12,24 +12,8 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: 'DevTracker',
   description: 'Manage tasks and team progress efficiently',
-  generator: 'v0.app',
-  icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
-  },
+  generator: 'Ahmad Shoaib Amiri',
+  
 }
 
 export const viewport = {
