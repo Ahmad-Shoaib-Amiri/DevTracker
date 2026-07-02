@@ -11,7 +11,6 @@ import {
   updateUser,
   deleteUser,
 } from '@/services/userService'
-import { useState } from 'react'
 import { Edit2, Trash2, Plus } from 'lucide-react'
 
 export default function UsersPage() {
@@ -24,14 +23,30 @@ export default function UsersPage() {
     role: 'developer',
     password: '',
   })
+  const [users, setUsers] = useState([])
+  useEffect(() => {
+  fetchUsers()
+}, [])
 
-  const filteredUsers = USERS.filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter
-    return matchesSearch && matchesRole
-  })
+const fetchUsers = async () => {
+  try {
+    const data = await getUsers()
+    setUsers(data)
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const filteredUsers = users.filter((user) => {
+  const matchesSearch =
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+
+  const matchesRole =
+    roleFilter === 'all' || user.role === roleFilter
+
+  return matchesSearch && matchesRole
+})
 
   const handleAddUser = (e) => {
     e.preventDefault()
@@ -39,6 +54,7 @@ export default function UsersPage() {
     setFormData({ name: '', email: '', role: 'developer', password: '' })
     setShowModal(false)
   }
+
 
   return (
     <DashboardLayout>
