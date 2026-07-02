@@ -37,6 +37,17 @@ const fetchUsers = async () => {
   }
 }
 
+const filteredUsers = users.filter((user) => {
+  const matchesSearch =
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+
+  const matchesRole =
+    roleFilter === 'all' || user.role === roleFilter
+
+  return matchesSearch && matchesRole
+})
+
 const handleAddUser = async (e) => {
   e.preventDefault()
 
@@ -57,13 +68,6 @@ const handleAddUser = async (e) => {
     console.error(error)
   }
 }
-
-  const handleAddUser = (e) => {
-    e.preventDefault()
-    console.log('Adding user:', formData)
-    setFormData({ name: '', email: '', role: 'developer', password: '' })
-    setShowModal(false)
-  }
 
 
   return (
@@ -116,21 +120,29 @@ const handleAddUser = async (e) => {
               </thead>
               <tbody className="divide-y divide-border">
                 {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-muted/30">
+                  <tr key={user._id} className="hover:bg-muted/30">
                     <td className="px-6 py-4 font-medium text-foreground">{user.name}</td>
                     <td className="px-6 py-4 text-muted-foreground">{user.email}</td>
                     <td className="px-6 py-4 text-muted-foreground capitalize">{user.role}</td>
                     <td className="px-6 py-4">
-                      <StatusBadge status={user.status} />
+                      <StatusBadge status="Active" />
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button className="rounded-lg p-2 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
                           <Edit2 size={18} />
                         </button>
-                        <button className="rounded-lg p-2 hover:bg-red-50 dark:hover:bg-red-950 text-red-600 dark:text-red-400 transition-colors">
-                          <Trash2 size={18} />
-                        </button>
+                        <button
+  onClick={async () => {
+    if (!confirm("Delete this user?")) return;
+
+    await deleteUser(user._id);
+    fetchUsers();
+  }}
+  className="rounded-lg p-2 hover:bg-red-50 dark:hover:bg-red-950 text-red-600 dark:text-red-400 transition-colors"
+>
+  <Trash2 size={18} />
+</button>
                       </div>
                     </td>
                   </tr>
