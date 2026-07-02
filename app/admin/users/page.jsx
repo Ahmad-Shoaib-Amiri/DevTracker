@@ -4,7 +4,13 @@ import { DashboardLayout } from '@/components/layouts/DashboardLayout'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { SearchBar } from '@/components/common/SearchBar'
 import { Button } from '@/components/ui/button'
-import { USERS } from '@/lib/mockData'
+import { useEffect, useState } from 'react'
+import {
+  getUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+} from '@/services/userService'
 import { useState } from 'react'
 import { Edit2, Trash2, Plus } from 'lucide-react'
 
