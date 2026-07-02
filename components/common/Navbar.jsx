@@ -1,13 +1,15 @@
 'use client'
 
 import { useAuth } from '@/context/AuthContext'
+import { useTheme } from '@/context/ThemeContext'
 import { useRouter } from 'next/navigation'
-import { Bell, LogOut, User } from 'lucide-react'
+import { Bell, LogOut, Moon, Sun, User } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 
 export function Navbar() {
   const { user, logout } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const router = useRouter()
   const [showMenu, setShowMenu] = useState(false)
 
@@ -22,6 +24,15 @@ export function Navbar() {
         <div className="flex-1" />
 
         <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="p-2 text-muted-foreground hover:text-foreground"
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+
           <button className="relative p-2 text-muted-foreground hover:text-foreground">
             <Bell size={20} />
             <span className="absolute top-1 right-1 size-2 rounded-full bg-red-500" />
