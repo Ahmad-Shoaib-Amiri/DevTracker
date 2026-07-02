@@ -37,16 +37,26 @@ const fetchUsers = async () => {
   }
 }
 
-const filteredUsers = users.filter((user) => {
-  const matchesSearch =
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+const handleAddUser = async (e) => {
+  e.preventDefault()
 
-  const matchesRole =
-    roleFilter === 'all' || user.role === roleFilter
+  try {
+    await createUser(formData)
 
-  return matchesSearch && matchesRole
-})
+    fetchUsers()
+
+    setFormData({
+      name: '',
+      email: '',
+      role: 'developer',
+      password: '',
+    })
+
+    setShowModal(false)
+  } catch (error) {
+    console.error(error)
+  }
+}
 
   const handleAddUser = (e) => {
     e.preventDefault()
