@@ -38,11 +38,11 @@ const handleLogin = async (e) => {
   }
 }
 
-  const demoAccounts = [
-    { email: 'admin@task.com', password: 'admin', role: 'Admin' },
-    { email: 'developer@task.com', password: 'dev123', role: 'Developer' },
-    { email: 'trainee@task.com', password: 'trainee', role: 'Trainee' },
-  ]
+  // const demoAccounts = [
+  //   { email: 'admin@task.com', password: 'admin', role: 'Admin' },
+  //   { email: 'developer@task.com', password: 'dev123', role: 'Developer' },
+  //   { email: 'trainee@task.com', password: 'trainee', role: 'Trainee' },
+  // ]
 
   const fillDemoCredentials = (email, password) => {
     setEmail(email)
@@ -58,7 +58,7 @@ const handleLogin = async (e) => {
           {/* Logo */}
           <div className="flex items-center justify-center gap-3 mb-8">
             <div className="flex size-12 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-xl">
-              TM
+              DT
             </div>
             <h1 className="text-2xl font-bold text-foreground">DevTracker</h1>
           </div>

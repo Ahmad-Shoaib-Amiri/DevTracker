@@ -5,18 +5,35 @@ import { DashboardCard } from '@/components/common/DashboardCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { PriorityBadge } from '@/components/common/PriorityBadge'
 import { Users, FolderOpen, CheckSquare, Clock } from 'lucide-react'
-import { USERS, PROJECTS, TASKS, ACTIVITY_LOG } from '@/lib/mockData'
+import { useEffect, useState } from 'react'
+import {
+  getDashboardStats,
+  getDashboardLists,
+} from '@/services/dashboardService'
 
 export default function AdminDashboard() {
-  const developers = USERS.filter(u => u.role === 'developer').length
-  const trainees = USERS.filter(u => u.role === 'trainee').length
-  const totalProjects = PROJECTS.length
-  const totalTasks = TASKS.length
-  const completedTasks = TASKS.filter(t => t.status === 'Completed').length
-  const pendingTasks = TASKS.filter(t => t.status === 'Pending').length
+  const [stats, setStats] = useState({})
+const [recentProjects, setRecentProjects] = useState([])
+const [recentTasks, setRecentTasks] = useState([])
+const [activities, setActivities] = useState([])
 
-  const recentProjects = PROJECTS.slice(0, 5)
-  const recentTasks = TASKS.slice(0, 5)
+useEffect(() => {
+  const fetchDashboard = async () => {
+    try {
+      const statsData = await getDashboardStats()
+      const listsData = await getDashboardLists()
+
+      setStats(statsData)
+      setRecentProjects(listsData.recentProjects)
+      setRecentTasks(listsData.recentTasks)
+      setActivities(listsData.recentActivities)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  fetchDashboard()
+}, [])
 
   return (
     <DashboardLayout>
@@ -29,12 +46,12 @@ export default function AdminDashboard() {
 
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
-          <DashboardCard title="Developers" value={developers} icon={Users} />
-          <DashboardCard title="Trainees" value={trainees} icon={Users} />
-          <DashboardCard title="Projects" value={totalProjects} icon={FolderOpen} />
-          <DashboardCard title="Total Tasks" value={totalTasks} icon={CheckSquare} />
-          <DashboardCard title="Completed" value={completedTasks} icon={CheckSquare} />
-          <DashboardCard title="Pending" value={pendingTasks} icon={Clock} />
+          <DashboardCard title="Developers" value={stats.developers || 0} icon={Users} />
+          <DashboardCard title="Trainees" value={stats.trainees || 0} icon={Users} />
+          <DashboardCard title="Projects" value={stats.projects || 0} icon={FolderOpen} />
+          <DashboardCard title="Total Tasks" value={stats.totalTasks || 0} icon={CheckSquare} />
+          <DashboardCard title="Completed" value={stats.completedProjects || 0} icon={CheckSquare} />
+          <DashboardCard title="Pending" value={stats.pendingTasks || 0} icon={Clock} />
         </div>
 
         {/* Recent Projects */}
@@ -53,11 +70,11 @@ export default function AdminDashboard() {
               </thead>
               <tbody className="divide-y divide-border">
                 {recentProjects.map((project) => {
-                  const dev = USERS.find(u => project.developers.includes(u.id))
+                  // project.assignedDeveloper?.name
                   return (
-                    <tr key={project.id} className="hover:bg-muted/50">
+                    <tr key={project._id} className="hover:bg-muted/50">
                       <td className="px-4 py-3 font-medium text-foreground">{project.name}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{dev?.name}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{project.assignedDeveloper?.name}</td>
                       <td className="px-4 py-3">
                         <StatusBadge status={project.status} />
                       </td>
@@ -97,13 +114,17 @@ export default function AdminDashboard() {
               </thead>
               <tbody className="divide-y divide-border">
                 {recentTasks.map((task) => {
-                  const assignee = USERS.find(u => u.id === task.assignee)
-                  const project = PROJECTS.find(p => p.id === task.project)
+                  // task.project?.name
+                  // task.assignedUser?.name
                   return (
-                    <tr key={task.id} className="hover:bg-muted/50">
+                    <tr key={task._id} className="hover:bg-muted/50">
                       <td className="px-4 py-3 font-medium text-foreground">{task.title}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{project?.name || 'N/A'}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{assignee?.name}</td>
+                      <td className="px-4 py-3 text-muted-foreground">
+  {task.project?.name || 'N/A'}
+</td>
+                     <td className="px-4 py-3 text-muted-foreground">
+  {task.assignedUser?.name || 'N/A'}
+</td>
                       <td className="px-4 py-3">
                         <PriorityBadge priority={task.priority} />
                       </td>
@@ -122,16 +143,16 @@ export default function AdminDashboard() {
         <div className="rounded-lg border border-border bg-card p-6">
           <h2 className="mb-4 text-lg font-semibold text-foreground">Recent Activity</h2>
           <div className="space-y-4">
-            {ACTIVITY_LOG.slice(0, 6).map((log) => (
-              <div key={log.id} className="flex items-start gap-4 border-b border-border pb-4 last:border-0">
+            {activities.map((log) => (
+              <div key={log._id} className="flex items-start gap-4 border-b border-border pb-4 last:border-0">
                 <div className="mt-1 size-2 rounded-full bg-primary" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-foreground">
-                    <span className="font-semibold">{log.user}</span> {log.action}{' '}
-                    <span className="text-primary">{log.item}</span>
+                    <span className="font-bold">{log.user}: </span>  
+                    <span className="text-semibold">{log.message}{' '}</span>
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {new Date(log.timestamp).toLocaleString()}
+                    {new Date(log.createdAt).toLocaleString()}
                   </p>
                 </div>
               </div>

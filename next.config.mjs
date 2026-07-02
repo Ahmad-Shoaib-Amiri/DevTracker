@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  devIndicators: false,
       allowedDevOrigins: [
     '10.10.10.24',
     'localhost',
