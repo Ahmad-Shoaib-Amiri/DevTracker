@@ -1,10 +1,9 @@
 import api from "@/lib/axios";
 
-export const getUsers = async () => {
-  const res = await api.get("/users");
-  return res.data.users ?? [];
-};
-
+export const getUsers = async (page = 1, limit = 10) => {
+  const res = await api.get(`/users?page=${page}&limit=${limit}`)
+  return res.data
+}
 export const createUser = async (userData) => {
   const res = await api.post("/users", userData);
   return res.data;

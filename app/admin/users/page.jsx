@@ -17,6 +17,9 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
   const [showModal, setShowModal] = useState(false)
+  const [page, setPage] = useState(1)
+const [totalPages, setTotalPages] = useState(1)
+const limit = 10
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -28,14 +31,20 @@ export default function UsersPage() {
   fetchUsers()
 }, [])
 
-const fetchUsers = async () => {
+const fetchUsers = async (pageNumber = 1) => {
   try {
-    const data = await getUsers()
-    setUsers(data)
+    const res = await getUsers(pageNumber, limit)
+
+    setUsers(res.users)
+    setTotalPages(Math.ceil(res.total / limit))
   } catch (error) {
     console.error(error)
   }
 }
+
+useEffect(() => {
+  fetchUsers(page)
+}, [page])
 
 const filteredUsers = users.filter((user) => {
   const matchesSearch =
@@ -49,25 +58,26 @@ const filteredUsers = users.filter((user) => {
 })
 
 const handleAddUser = async (e) => {
-  e.preventDefault()
+  e.preventDefault();
 
   try {
-    await createUser(formData)
+    await createUser(formData);
 
-    fetchUsers()
+    await fetchUsers();
 
     setFormData({
-      name: '',
-      email: '',
-      role: 'developer',
-      password: '',
-    })
+      name: "",
+      email: "",
+      role: "developer",
+      password: "",
+    });
 
-    setShowModal(false)
+    setShowModal(false);
   } catch (error) {
-    console.error(error)
+    console.error(error.response?.data || error);
+    alert(error.response?.data?.message || "Failed to create user");
   }
-}
+};
 
 
   return (
@@ -88,6 +98,9 @@ const handleAddUser = async (e) => {
         {/* Filters */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center">
           <div className="flex-1">
+
+
+            
             <SearchBar
               placeholder="Search users..."
               onSearch={setSearchTerm}
@@ -149,6 +162,39 @@ const handleAddUser = async (e) => {
                 ))}
               </tbody>
             </table>
+            <div className="flex items-center justify-between mt-6 p-4 rounded-lg border bg-card">
+
+  <button
+    onClick={() => setPage((p) => Math.max(p - 1, 1))}
+    disabled={page === 1}
+    className="px-4 py-2 rounded-md border disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted"
+  >
+    ← Previous
+  </button>
+
+  <div className="flex items-center gap-2">
+    <span className="text-sm text-muted-foreground">
+      Page
+    </span>
+
+    <span className="px-3 py-1 rounded-md bg-primary text-white text-sm">
+      {page}
+    </span>
+
+    <span className="text-sm text-muted-foreground">
+      of {totalPages}
+    </span>
+  </div>
+
+  <button
+    onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+    disabled={page >= totalPages}
+    className="px-4 py-2 rounded-md border disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted"
+  >
+    Next →
+  </button>
+
+</div>
           </div>
         </div>
 
