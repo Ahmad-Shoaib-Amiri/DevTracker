@@ -15,12 +15,13 @@ export default function ProjectsPage() {
   const [showModal, setShowModal] = useState(false)
 
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    developers: [],
-    startDate: '',
-    deadline: '',
-  })
+  name: '',
+  description: '',
+  // developers: [],           // keep for now
+  assignedDeveloper: '',    // ← add this
+  startDate: '',
+  deadline: '',
+});
 
   const [projects, setProjects] = useState([])
   const [users, setUsers] = useState([])
@@ -84,40 +85,42 @@ export default function ProjectsPage() {
   })
 
   const handleAddProject = async (e) => {
-    e.preventDefault()
+  e.preventDefault();
 
-    if (!formData.name.trim()) return
+  if (!formData.name.trim()) return;
 
-    try {
-      setSubmitLoading(true)
+  try {
+    setSubmitLoading(true);
 
-      const payload = {
-        name: formData.name.trim(),
-        description: formData.description.trim(),
-        developers: formData.developers || [],
-        startDate: formData.startDate || undefined,
-        deadline: formData.deadline || undefined,
-        status: 'Not Started',
-        progress: 0,
-      }
+    const payload = {
+      name: formData.name.trim(),
+      description: formData.description.trim(),
+      assignedDeveloper: formData.assignedDeveloper || null,   // ← Fixed
+      startDate: formData.startDate || undefined,
+      deadline: formData.deadline || undefined,
+      status: 'Not Started',
+      progress: 0,
+    };
 
-      await createProject(payload)
-      await fetchProjects()
+    await createProject(payload);
+    await fetchProjects();
 
-      setFormData({
-        name: '',
-        description: '',
-        developers: [],
-        startDate: '',
-        deadline: '',
-      })
-      setShowModal(false)
-    } catch (error) {
-      console.error('Failed to create project:', error)
-    } finally {
-      setSubmitLoading(false)
-    }
+    // Reset form
+    setFormData({
+      name: '',
+      description: '',
+      assignedDeveloper: '',
+      startDate: '',
+      deadline: '',
+    });
+    setShowModal(false);
+  } catch (error) {
+    console.error('Failed to create project:', error);
+    // Optionally show toast/error message to user
+  } finally {
+    setSubmitLoading(false);
   }
+};
 
   const goToPage = (newPage) => {
     if (newPage < 1 || newPage > totalPages) return
@@ -353,8 +356,8 @@ export default function ProjectsPage() {
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Developers</label>
                   <select
-                    value={formData.developers[0] || ''}
-                    onChange={(e) => setFormData({ ...formData, developers: e.target.value ? [e.target.value] : [] })}
+                    value={formData.assignedDeveloper || ''}
+                    onChange={(e) => setFormData({ ...formData, assignedDeveloper: e.target.value })}
                     className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   >
                     <option value="">Select a developer</option>
