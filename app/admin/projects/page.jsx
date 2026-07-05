@@ -45,8 +45,14 @@ export default function ProjectsPage() {
       const data = await getProjects(page, 10)
       console.log('Projects API response:', data)
 
-      setProjects(data?.projects || [])
-      setTotalPages(Math.ceil((data?.total || 0) / 10))
+      const projectsData = Array.isArray(data)
+        ? data
+        : data?.projects || data?.data || []
+
+      const totalCount = data?.total ?? data?.count ?? data?.totalCount ?? projectsData.length
+
+      setProjects(projectsData)
+      setTotalPages(Math.max(1, Math.ceil(totalCount / 10)))
     } catch (error) {
       console.error('Failed to fetch projects:', error)
       setProjects([])
@@ -94,17 +100,64 @@ export default function ProjectsPage() {
     setPage(newPage)
   }
 
-  // Get developer names from backend users
-  const getDeveloperNames = (developerIds) => {
-    if (!developerIds || !Array.isArray(developerIds)) return ''
-    
-    return developerIds
-      .map((devId) => {
-        const user = users.find((u) => u.id === devId || u._id === devId)
-        return user?.name || user?.fullName || 'Unknown'
+  const getDeveloperNames = (developers) => {
+    if (!developers || !Array.isArray(developers)) return 'No developers assigned'
+
+    const names = developers
+      .map((developer) => {
+        if (typeof developer === 'string') {
+          const user = users.find((u) => u.id === developer || u._id === developer)
+          return user?.name || user?.fullName || user?.username || developer
+        }
+
+        if (typeof developer === 'object') {
+          if (developer?.name || developer?.fullName || developer?.username) {
+            return developer.name || developer.fullName || developer.username
+          }
+
+          if (developer?.user?.name || developer?.user?.fullName || developer?.user?.username) {
+            return developer.user.name || developer.user.fullName || developer.user.username
+          }
+
+          if (developer?.developer?.name || developer?.developer?.fullName || developer?.developer?.username) {
+            return developer.developer.name || developer.developer.fullName || developer.developer.username
+          }
+
+          const user = users.find(
+            (u) => u.id === developer?.id || u._id === developer?._id || u.id === developer?.userId || u._id === developer?.userId
+          )
+
+          return user?.name || user?.fullName || user?.username || ''
+        }
+
+        return ''
       })
       .filter(Boolean)
-      .join(', ')
+
+    return names.length ? names.join(', ') : 'No developers assigned'
+  }
+
+  const getProgressValue = (project) => {
+    const value = project?.progress ?? project?.completionPercentage ?? project?.progressPercentage ?? project?.completed ?? project?.percentage ?? 0
+    const numericValue = Number(value)
+
+    if (!Number.isFinite(numericValue)) return 0
+
+    return Math.max(0, Math.min(100, numericValue))
+  }
+
+  const formatDeadline = (deadline) => {
+    if (!deadline) return 'No deadline'
+
+    const date = new Date(deadline)
+
+    if (Number.isNaN(date.getTime())) return deadline
+
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    }).format(date)
   }
 
   return (
@@ -171,13 +224,13 @@ export default function ProjectsPage() {
                         <div className="h-2 w-16 rounded-full bg-muted">
                           <div
                             className="h-2 rounded-full bg-primary"
-                            style={{ width: `${project.progress || 0}%` }}
+                            style={{ width: `${getProgressValue(project)}%` }}
                           />
                         </div>
-                        <span className="text-xs font-medium w-10">{project.progress || 0}%</span>
+                        <span className="text-xs font-medium w-10">{getProgressValue(project)}%</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-muted-foreground">{project.deadline}</td>
+                    <td className="px-6 py-4 text-muted-foreground">{formatDeadline(project.deadline)}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button className="rounded-lg p-2 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
