@@ -6,8 +6,8 @@ import { SearchBar } from '@/components/common/SearchBar'
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
 import { Edit2, Trash2, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
-import { getProjects } from '@/services/projectServices'
-import { getUsers } from '@/services/userService'   // ← Added
+import { createProject, getProjects } from '@/services/projectServices'
+import { getUsers } from '@/services/userService'
 
 export default function ProjectsPage() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -23,16 +23,18 @@ export default function ProjectsPage() {
   })
 
   const [projects, setProjects] = useState([])
-  const [users, setUsers] = useState([])        // ← New: Users from backend
+  const [users, setUsers] = useState([])
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [submitLoading, setSubmitLoading] = useState(false)
 
   // Fetch Users from Backend
   const fetchUsers = async () => {
     try {
-      const data = await getUsers()
-      setUsers(data?.users || data || [])   // Adjust based on your API response structure
+      const data = await getUsers(1, 1000)
+      const usersData = data?.users || data?.data || data || []
+      setUsers(usersData)
     } catch (error) {
       console.error('Failed to fetch users:', error)
       setUsers([])
@@ -81,18 +83,40 @@ export default function ProjectsPage() {
     return matchesSearch && matchesStatus
   })
 
-  const handleAddProject = (e) => {
+  const handleAddProject = async (e) => {
     e.preventDefault()
-    console.log('Adding project:', formData)
 
-    setFormData({
-      name: '',
-      description: '',
-      developers: [],
-      startDate: '',
-      deadline: '',
-    })
-    setShowModal(false)
+    if (!formData.name.trim()) return
+
+    try {
+      setSubmitLoading(true)
+
+      const payload = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        developers: formData.developers || [],
+        startDate: formData.startDate || undefined,
+        deadline: formData.deadline || undefined,
+        status: 'Not Started',
+        progress: 0,
+      }
+
+      await createProject(payload)
+      await fetchProjects()
+
+      setFormData({
+        name: '',
+        description: '',
+        developers: [],
+        startDate: '',
+        deadline: '',
+      })
+      setShowModal(false)
+    } catch (error) {
+      console.error('Failed to create project:', error)
+    } finally {
+      setSubmitLoading(false)
+    }
   }
 
   const goToPage = (newPage) => {
@@ -159,6 +183,11 @@ export default function ProjectsPage() {
       day: 'numeric',
     }).format(date)
   }
+
+  const developerOptions = users.filter((user) => {
+    const role = String(user?.role || '').toLowerCase()
+    return role === 'developer' || role === 'developers'
+  })
 
   return (
     <DashboardLayout>
@@ -321,6 +350,21 @@ export default function ProjectsPage() {
                     className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Developers</label>
+                  <select
+                    value={formData.developers[0] || ''}
+                    onChange={(e) => setFormData({ ...formData, developers: e.target.value ? [e.target.value] : [] })}
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="">Select a developer</option>
+                    {developerOptions.map((user) => (
+                      <option key={user._id || user.id} value={user._id || user.id}>
+                        {user.name || user.fullName || user.username}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">Start Date</label>
@@ -350,8 +394,8 @@ export default function ProjectsPage() {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" className="flex-1">
-                    Create Project
+                  <Button type="submit" className="flex-1" disabled={submitLoading}>
+                    {submitLoading ? 'Creating...' : 'Create Project'}
                   </Button>
                 </div>
               </form>
