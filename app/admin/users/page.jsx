@@ -1,3 +1,4 @@
+
 'use client'
 
 import { DashboardLayout } from '@/components/layouts/DashboardLayout'
@@ -18,71 +19,98 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState('all')
   const [showModal, setShowModal] = useState(false)
   const [page, setPage] = useState(1)
-const [totalPages, setTotalPages] = useState(1)
-const limit = 10
+  const [totalPages, setTotalPages] = useState(1)
+  const limit = 10
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     role: 'developer',
     password: '',
   })
-  const [users, setUsers] = useState([])
+  const [allUsers, setAllUsers] = useState([])
+  const [notification, setNotification] = useState(null)
+
+  const showNotification = (message, type = 'success') => {
+    setNotification({ message, type })
+    setTimeout(() => {
+      setNotification(null)
+    }, 3000)
+  }
+
+  const fetchAllUsers = async () => {
+    try {
+      const res = await getUsers(1, 1000)
+      setAllUsers(res.users || [])
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
   useEffect(() => {
-  fetchUsers()
-}, [])
+    fetchAllUsers()
+  }, [])
 
-const fetchUsers = async (pageNumber = 1) => {
-  try {
-    const res = await getUsers(pageNumber, limit)
+  const filteredUsers = allUsers.filter((user) => {
+    const matchesSearch =
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
 
-    setUsers(res.users)
-    setTotalPages(Math.ceil(res.total / limit))
-  } catch (error) {
-    console.error(error)
-  }
-}
+    const matchesRole =
+      roleFilter === 'all' || user.role === roleFilter
 
-useEffect(() => {
-  fetchUsers(page)
-}, [page])
+    return matchesSearch && matchesRole
+  })
 
-const filteredUsers = users.filter((user) => {
-  const matchesSearch =
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const paginatedUsers = filteredUsers.slice(
+    (page - 1) * limit,
+    page * limit
+  )
 
-  const matchesRole =
-    roleFilter === 'all' || user.role === roleFilter
+  useEffect(() => {
+    setTotalPages(Math.ceil(filteredUsers.length / limit))
+    if (page > Math.ceil(filteredUsers.length / limit) && filteredUsers.length > 0) {
+      setPage(Math.ceil(filteredUsers.length / limit))
+    } else if (filteredUsers.length === 0) {
+      setPage(1)
+    }
+  }, [filteredUsers.length, limit, page])
 
-  return matchesSearch && matchesRole
-})
+  const handleAddUser = async (e) => {
+    e.preventDefault();
 
-const handleAddUser = async (e) => {
-  e.preventDefault();
+    try {
+      await createUser(formData);
 
-  try {
-    await createUser(formData);
+      await fetchAllUsers()
 
-    await fetchUsers();
+      setFormData({
+        name: "",
+        email: "",
+        role: "developer",
+        password: "",
+      });
 
-    setFormData({
-      name: "",
-      email: "",
-      role: "developer",
-      password: "",
-    });
-
-    setShowModal(false);
-  } catch (error) {
-    console.error(error.response?.data || error);
-    alert(error.response?.data?.message || "Failed to create user");
-  }
-};
-
+      setShowModal(false);
+      showNotification("User added successfully!");
+    } catch (error) {
+      console.error(error.response?.data || error);
+      alert(error.response?.data?.message || "Failed to create user");
+    }
+  };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Notification */}
+        {notification && (
+          <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 text-sm
+            ${notification.type === 'success' 
+              ? 'bg-green-500 text-white' 
+              : 'bg-red-500 text-white'}`}>
+            {notification.message}
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -98,9 +126,6 @@ const handleAddUser = async (e) => {
         {/* Filters */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center">
           <div className="flex-1">
-
-
-            
             <SearchBar
               placeholder="Search users..."
               onSearch={setSearchTerm}
@@ -132,7 +157,7 @@ const handleAddUser = async (e) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filteredUsers.map((user) => (
+                {paginatedUsers.map((user) => (
                   <tr key={user._id} className="hover:bg-muted/30">
                     <td className="px-6 py-4 font-medium text-foreground">{user.name}</td>
                     <td className="px-6 py-4 text-muted-foreground">{user.email}</td>
@@ -146,55 +171,63 @@ const handleAddUser = async (e) => {
                           <Edit2 size={18} />
                         </button>
                         <button
-  onClick={async () => {
-    if (!confirm("Delete this user?")) return;
+                          onClick={async () => {
+                            if (!confirm("Delete this user?")) return;
 
-    await deleteUser(user._id);
-    fetchUsers();
-  }}
-  className="rounded-lg p-2 hover:bg-red-50 dark:hover:bg-red-950 text-red-600 dark:text-red-400 transition-colors"
->
-  <Trash2 size={18} />
-</button>
+                            await deleteUser(user._id);
+                            showNotification("User deleted successfully!");
+                            await fetchAllUsers();
+                          }}
+                          className="rounded-lg p-2 hover:bg-red-50 dark:hover:bg-red-950 text-red-600 dark:text-red-400 transition-colors"
+                        >
+                          <Trash2 size={18} />
+                        </button>
                       </div>
                     </td>
                   </tr>
                 ))}
+                {paginatedUsers.length === 0 && (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-8 text-center text-muted-foreground">
+                      No users found
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
-            <div className="flex items-center justify-between mt-6 p-4 rounded-lg border bg-card">
 
-  <button
-    onClick={() => setPage((p) => Math.max(p - 1, 1))}
-    disabled={page === 1}
-    className="px-4 py-2 rounded-md border disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted"
-  >
-    ← Previous
-  </button>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-6 p-4 rounded-lg border bg-card">
+                <button
+                  onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                  disabled={page === 1}
+                  className="px-4 py-2 rounded-md border disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted"
+                >
+                  ← Previous
+                </button>
 
-  <div className="flex items-center gap-2">
-    <span className="text-sm text-muted-foreground">
-      Page
-    </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    Page
+                  </span>
+                  <span className="px-3 py-1 rounded-md bg-primary text-white text-sm">
+                    {page}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    of {totalPages}
+                  </span>
+                </div>
 
-    <span className="px-3 py-1 rounded-md bg-primary text-white text-sm">
-      {page}
-    </span>
-
-    <span className="text-sm text-muted-foreground">
-      of {totalPages}
-    </span>
-  </div>
-
-  <button
-    onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-    disabled={page >= totalPages}
-    className="px-4 py-2 rounded-md border disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted"
-  >
-    Next →
-  </button>
-
-</div>
+                <button
+                  onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                  disabled={page >= totalPages}
+                  className="px-4 py-2 rounded-md border disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted"
+                >
+                  Next →
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
