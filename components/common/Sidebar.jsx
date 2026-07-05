@@ -61,7 +61,7 @@ export function Sidebar() {
           {/* Logo */}
           <div className="flex items-center gap-3 border-b border-border px-6 py-6">
             <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
-              TM
+              DT
             </div>
             <span className="font-semibold text-foreground">DevTracker</span>
           </div>
