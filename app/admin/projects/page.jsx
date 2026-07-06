@@ -6,22 +6,23 @@ import { SearchBar } from '@/components/common/SearchBar'
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
 import { Edit2, Trash2, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
-import { createProject, getProjects } from '@/services/projectServices'
+import { createProject, updateProject,getProjects } from '@/services/projectServices'
 import { getUsers } from '@/services/userService'
 
 export default function ProjectsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [showModal, setShowModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)     // ← Added
+  const [editingProject, setEditingProject] = useState(null)    // ← Added
 
   const [formData, setFormData] = useState({
-  name: '',
-  description: '',
-  // developers: [],           // keep for now
-  assignedDeveloper: '',    // ← add this
-  startDate: '',
-  deadline: '',
-});
+    name: '',
+    description: '',
+    assignedDeveloper: '',
+    startDate: '',
+    deadline: '',
+  });
 
   const [projects, setProjects] = useState([])
   const [users, setUsers] = useState([])
@@ -84,93 +85,129 @@ export default function ProjectsPage() {
     return matchesSearch && matchesStatus
   })
 
-  const handleAddProject = async (e) => {
-  e.preventDefault();
-
-  if (!formData.name.trim()) return;
-
-  try {
-    setSubmitLoading(true);
-
-    const payload = {
-      name: formData.name.trim(),
-      description: formData.description.trim(),
-      assignedDeveloper: formData.assignedDeveloper || null,   // ← Fixed
-      startDate: formData.startDate || undefined,
-      deadline: formData.deadline || undefined,
-      status: 'Not Started',
-      progress: 0,
-    };
-
-    await createProject(payload);
-    await fetchProjects();
-
-    // Reset form
+  // Handle Edit Click
+  const handleEditClick = (project) => {
+    setEditingProject(project);
     setFormData({
-      name: '',
-      description: '',
-      assignedDeveloper: '',
-      startDate: '',
-      deadline: '',
+      name: project.name || '',
+      description: project.description || '',
+      assignedDeveloper: project.assignedDeveloper?._id || project.assignedDeveloper || '',
+      startDate: project.startDate ? project.startDate.split('T')[0] : '',
+      deadline: project.deadline ? project.deadline.split('T')[0] : '',
     });
-    setShowModal(false);
-  } catch (error) {
-    console.error('Failed to create project:', error);
-    // Optionally show toast/error message to user
-  } finally {
-    setSubmitLoading(false);
-  }
+    setShowEditModal(true);
+  };
+
+  // Handle Update Project
+  const handleUpdateProject = async (e) => {
+    e.preventDefault();
+    if (!formData.name.trim() || !editingProject) return;
+
+    try {
+      setSubmitLoading(true);
+
+     const payload = {
+  name: formData.name.trim(),
+  description: formData.description.trim(),
+  assignedDeveloper: formData.assignedDeveloper || null,
+  startDate: formData.startDate || undefined,
+  deadline: formData.deadline || undefined,
+  status: 'Not Started',
 };
+
+      await updateProject(editingProject._id || editingProject.id, payload);  // ← You need to import this
+      await fetchProjects();
+
+      setShowEditModal(false);
+      setEditingProject(null);
+    } catch (error) {
+      console.error('Failed to update project:', error);
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
+  const handleAddProject = async (e) => {
+    e.preventDefault();
+
+    if (!formData.name.trim()) return;
+
+    try {
+      setSubmitLoading(true);
+
+      const payload = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        assignedDeveloper: formData.assignedDeveloper || null,
+        startDate: formData.startDate || undefined,
+        deadline: formData.deadline || undefined,
+        status: 'Not Started',
+      };
+
+      await createProject(payload);
+      await fetchProjects();
+
+      setFormData({
+        name: '',
+        description: '',
+        assignedDeveloper: '',
+        startDate: '',
+        deadline: '',
+      });
+      setShowModal(false);
+    } catch (error) {
+      console.error('Failed to create project:', error);
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
 
   const goToPage = (newPage) => {
     if (newPage < 1 || newPage > totalPages) return
     setPage(newPage)
   }
 
-  const getDeveloperNames = (developers) => {
-    if (!developers || !Array.isArray(developers)) return 'No developers assigned'
+  const getDeveloperName = (developer) => {
+    if (!developer) return 'No developer assigned'
 
-    const names = developers
-      .map((developer) => {
-        if (typeof developer === 'string') {
-          const user = users.find((u) => u.id === developer || u._id === developer)
-          return user?.name || user?.fullName || user?.username || developer
-        }
+    if (typeof developer === 'object' && developer !== null) {
+      if (developer?.name || developer?.fullName || developer?.username) {
+        return developer.name || developer.fullName || developer.username
+      }
 
-        if (typeof developer === 'object') {
-          if (developer?.name || developer?.fullName || developer?.username) {
-            return developer.name || developer.fullName || developer.username
-          }
+      if (developer?.user?.name || developer?.user?.fullName || developer?.user?.username) {
+        return developer.user.name || developer.user.fullName || developer.user.username
+      }
 
-          if (developer?.user?.name || developer?.user?.fullName || developer?.user?.username) {
-            return developer.user.name || developer.user.fullName || developer.user.username
-          }
+      if (developer?.developer?.name || developer?.developer?.fullName || developer?.developer?.username) {
+        return developer.developer.name || developer.developer.fullName || developer.developer.username
+      }
 
-          if (developer?.developer?.name || developer?.developer?.fullName || developer?.developer?.username) {
-            return developer.developer.name || developer.developer.fullName || developer.developer.username
-          }
+      const user = users.find(
+        (u) => u.id === developer?.id || u._id === developer?._id || u.id === developer?.userId || u._id === developer?.userId
+      )
 
-          const user = users.find(
-            (u) => u.id === developer?.id || u._id === developer?._id || u.id === developer?.userId || u._id === developer?.userId
-          )
+      return user?.name || user?.fullName || user?.username || 'Unknown'
+    }
 
-          return user?.name || user?.fullName || user?.username || ''
-        }
+    if (typeof developer === 'string') {
+      const user = users.find((u) => u._id === developer || u.id === developer)
+      return user?.name || user?.fullName || user?.username || 'Unknown'
+    }
 
-        return ''
-      })
-      .filter(Boolean)
-
-    return names.length ? names.join(', ') : 'No developers assigned'
+    return 'No developer assigned'
   }
 
-  const getProgressValue = (project) => {
-    const value = project?.progress ?? project?.completionPercentage ?? project?.progressPercentage ?? project?.completed ?? project?.percentage ?? 0
-    const numericValue = Number(value)
+  const getDeveloperNames = (developers) => {
+    const list = Array.isArray(developers) ? developers : [developers]
 
-    if (!Number.isFinite(numericValue)) return 0
+    if (!list.some(Boolean)) return 'No developer assigned'
 
-    return Math.max(0, Math.min(100, numericValue))
+    const names = list
+      .map((developer) => getDeveloperName(developer))
+      .filter((name) => name && name !== 'No developer assigned' && name !== 'Unknown')
+
+    return names.length ? names.join(', ') : 'No developer assigned'
   }
 
   const formatDeadline = (deadline) => {
@@ -236,7 +273,6 @@ export default function ProjectsPage() {
                   <th className="px-6 py-4 text-left font-medium text-muted-foreground">Project Name</th>
                   <th className="px-6 py-4 text-left font-medium text-muted-foreground">Developers</th>
                   <th className="px-6 py-4 text-left font-medium text-muted-foreground">Status</th>
-                  <th className="px-6 py-4 text-left font-medium text-muted-foreground">Progress</th>
                   <th className="px-6 py-4 text-left font-medium text-muted-foreground">Deadline</th>
                   <th className="px-6 py-4 text-left font-medium text-muted-foreground">Actions</th>
                 </tr>
@@ -246,26 +282,18 @@ export default function ProjectsPage() {
                   <tr key={project._id || project.id} className="hover:bg-muted/30">
                     <td className="px-6 py-4 font-medium text-foreground">{project.name}</td>
                     <td className="px-6 py-4 text-muted-foreground text-xs">
-                      {getDeveloperNames(project.developers)}
+                      {getDeveloperNames(project.assignedDeveloper)}
                     </td>
                     <td className="px-6 py-4">
                       <StatusBadge status={project.status} />
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-16 rounded-full bg-muted">
-                          <div
-                            className="h-2 rounded-full bg-primary"
-                            style={{ width: `${getProgressValue(project)}%` }}
-                          />
-                        </div>
-                        <span className="text-xs font-medium w-10">{getProgressValue(project)}%</span>
-                      </div>
-                    </td>
                     <td className="px-6 py-4 text-muted-foreground">{formatDeadline(project.deadline)}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <button className="rounded-lg p-2 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                        <button 
+                          onClick={() => handleEditClick(project)}           // ← Now functional
+                          className="rounded-lg p-2 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        >
                           <Edit2 size={18} />
                         </button>
                         <button className="rounded-lg p-2 hover:bg-red-50 dark:hover:bg-red-950 text-red-600 dark:text-red-400 transition-colors">
@@ -280,7 +308,7 @@ export default function ProjectsPage() {
           </div>
         </div>
 
-        {/* Pagination */}
+        {/* Pagination - unchanged */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
@@ -327,12 +355,13 @@ export default function ProjectsPage() {
           </div>
         )}
 
-        {/* Add Project Modal */}
+        {/* Add Project Modal - unchanged */}
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-lg max-h-96 overflow-y-auto">
               <h2 className="text-xl font-semibold text-foreground mb-4">Create New Project</h2>
               <form onSubmit={handleAddProject} className="space-y-4">
+                {/* ... same form as before ... */}
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Project Name</label>
                   <input
@@ -399,6 +428,86 @@ export default function ProjectsPage() {
                   </Button>
                   <Button type="submit" className="flex-1" disabled={submitLoading}>
                     {submitLoading ? 'Creating...' : 'Create Project'}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Project Modal - Added */}
+        {showEditModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-lg max-h-96 overflow-y-auto">
+              <h2 className="text-xl font-semibold text-foreground mb-4">Edit Project</h2>
+              <form onSubmit={handleUpdateProject} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Project Name</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Description</label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows="3"
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Developers</label>
+                  <select
+                    value={formData.assignedDeveloper || ''}
+                    onChange={(e) => setFormData({ ...formData, assignedDeveloper: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="">Select a developer</option>
+                    {developerOptions.map((user) => (
+                      <option key={user._id || user.id} value={user._id || user.id}>
+                        {user.name || user.fullName || user.username}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Start Date</label>
+                    <input
+                      type="date"
+                      value={formData.startDate}
+                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                      className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Deadline</label>
+                    <input
+                      type="date"
+                      value={formData.deadline}
+                      onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                      className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setEditingProject(null);
+                    }}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="flex-1" disabled={submitLoading}>
+                    {submitLoading ? 'Updating...' : 'Update Project'}
                   </Button>
                 </div>
               </form>
