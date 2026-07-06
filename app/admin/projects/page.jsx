@@ -6,15 +6,15 @@ import { SearchBar } from '@/components/common/SearchBar'
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
 import { Edit2, Trash2, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
-import { createProject, updateProject,getProjects } from '@/services/projectServices'
+import { createProject, updateProject, getProjects } from '@/services/projectServices'
 import { getUsers } from '@/services/userService'
 
 export default function ProjectsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [showModal, setShowModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)     // ← Added
-  const [editingProject, setEditingProject] = useState(null)    // ← Added
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingProject, setEditingProject] = useState(null)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -22,6 +22,7 @@ export default function ProjectsPage() {
     assignedDeveloper: '',
     startDate: '',
     deadline: '',
+    status: 'Not Started',        // ← Added
   });
 
   const [projects, setProjects] = useState([])
@@ -94,6 +95,7 @@ export default function ProjectsPage() {
       assignedDeveloper: project.assignedDeveloper?._id || project.assignedDeveloper || '',
       startDate: project.startDate ? project.startDate.split('T')[0] : '',
       deadline: project.deadline ? project.deadline.split('T')[0] : '',
+      status: project.status || 'Not Started',        // ← Added
     });
     setShowEditModal(true);
   };
@@ -106,16 +108,16 @@ export default function ProjectsPage() {
     try {
       setSubmitLoading(true);
 
-     const payload = {
-  name: formData.name.trim(),
-  description: formData.description.trim(),
-  assignedDeveloper: formData.assignedDeveloper || null,
-  startDate: formData.startDate || undefined,
-  deadline: formData.deadline || undefined,
-  status: 'Not Started',
-};
+      const payload = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        assignedDeveloper: formData.assignedDeveloper || null,
+        startDate: formData.startDate || undefined,
+        deadline: formData.deadline || undefined,
+        status: formData.status,                     // ← Added
+      };
 
-      await updateProject(editingProject._id || editingProject.id, payload);  // ← You need to import this
+      await updateProject(editingProject._id || editingProject.id, payload);
       await fetchProjects();
 
       setShowEditModal(false);
@@ -141,7 +143,7 @@ export default function ProjectsPage() {
         assignedDeveloper: formData.assignedDeveloper || null,
         startDate: formData.startDate || undefined,
         deadline: formData.deadline || undefined,
-        status: 'Not Started',
+        status: formData.status,                     // ← Added
       };
 
       await createProject(payload);
@@ -153,6 +155,7 @@ export default function ProjectsPage() {
         assignedDeveloper: '',
         startDate: '',
         deadline: '',
+        status: 'Not Started',                       // ← Reset
       });
       setShowModal(false);
     } catch (error) {
@@ -291,7 +294,7 @@ export default function ProjectsPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button 
-                          onClick={() => handleEditClick(project)}           // ← Now functional
+                          onClick={() => handleEditClick(project)}
                           className="rounded-lg p-2 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         >
                           <Edit2 size={18} />
@@ -308,7 +311,7 @@ export default function ProjectsPage() {
           </div>
         </div>
 
-        {/* Pagination - unchanged */}
+        {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
@@ -355,40 +358,23 @@ export default function ProjectsPage() {
           </div>
         )}
 
-        {/* Add Project Modal - unchanged */}
+        {/* Add Project Modal */}
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-lg max-h-96 overflow-y-auto">
               <h2 className="text-xl font-semibold text-foreground mb-4">Create New Project</h2>
               <form onSubmit={handleAddProject} className="space-y-4">
-                {/* ... same form as before ... */}
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Project Name</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="E-commerce Platform"
-                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
+                  <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="E-commerce Platform" className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Description</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Project description..."
-                    rows="3"
-                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
+                  <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Project description..." rows="3" className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Developers</label>
-                  <select
-                    value={formData.assignedDeveloper || ''}
-                    onChange={(e) => setFormData({ ...formData, assignedDeveloper: e.target.value })}
-                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
+                  <select value={formData.assignedDeveloper || ''} onChange={(e) => setFormData({ ...formData, assignedDeveloper: e.target.value })} className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary">
                     <option value="">Select a developer</option>
                     {developerOptions.map((user) => (
                       <option key={user._id || user.id} value={user._id || user.id}>
@@ -397,35 +383,33 @@ export default function ProjectsPage() {
                     ))}
                   </select>
                 </div>
+
+                {/* Status Field Added */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Status</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="Not Started">Not Started</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">Start Date</label>
-                    <input
-                      type="date"
-                      value={formData.startDate}
-                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                      className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
+                    <input type="date" value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">Deadline</label>
-                    <input
-                      type="date"
-                      value={formData.deadline}
-                      onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                      className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
+                    <input type="date" value={formData.deadline} onChange={(e) => setFormData({ ...formData, deadline: e.target.value })} className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
                   </div>
                 </div>
                 <div className="flex gap-3 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowModal(false)}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setShowModal(false)} className="flex-1">Cancel</Button>
                   <Button type="submit" className="flex-1" disabled={submitLoading}>
                     {submitLoading ? 'Creating...' : 'Create Project'}
                   </Button>
@@ -435,7 +419,7 @@ export default function ProjectsPage() {
           </div>
         )}
 
-        {/* Edit Project Modal - Added */}
+        {/* Edit Project Modal */}
         {showEditModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-lg max-h-96 overflow-y-auto">
@@ -443,29 +427,15 @@ export default function ProjectsPage() {
               <form onSubmit={handleUpdateProject} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Project Name</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
+                  <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Description</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows="3"
-                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
+                  <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows="3" className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Developers</label>
-                  <select
-                    value={formData.assignedDeveloper || ''}
-                    onChange={(e) => setFormData({ ...formData, assignedDeveloper: e.target.value })}
-                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
+                  <select value={formData.assignedDeveloper || ''} onChange={(e) => setFormData({ ...formData, assignedDeveloper: e.target.value })} className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary">
                     <option value="">Select a developer</option>
                     {developerOptions.map((user) => (
                       <option key={user._id || user.id} value={user._id || user.id}>
@@ -474,38 +444,33 @@ export default function ProjectsPage() {
                     ))}
                   </select>
                 </div>
+
+                {/* Status Field Added */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Status</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="Not Started">Not Started</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">Start Date</label>
-                    <input
-                      type="date"
-                      value={formData.startDate}
-                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                      className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
+                    <input type="date" value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">Deadline</label>
-                    <input
-                      type="date"
-                      value={formData.deadline}
-                      onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                      className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
+                    <input type="date" value={formData.deadline} onChange={(e) => setFormData({ ...formData, deadline: e.target.value })} className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
                   </div>
                 </div>
                 <div className="flex gap-3 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowEditModal(false);
-                      setEditingProject(null);
-                    }}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
+                  <Button type="button" variant="outline" onClick={() => { setShowEditModal(false); setEditingProject(null); }} className="flex-1">Cancel</Button>
                   <Button type="submit" className="flex-1" disabled={submitLoading}>
                     {submitLoading ? 'Updating...' : 'Update Project'}
                   </Button>
