@@ -11,14 +11,14 @@ import {
   updateUser,
   deleteUser,
 } from '@/services/userService'
-import { Edit2, Trash2, Plus } from 'lucide-react'
+import { Edit2, Trash2, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
   const [showModal, setShowModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)     // ← Added
-  const [editingUser, setEditingUser] = useState(null)          // ← Added
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingUser, setEditingUser] = useState(null)
 
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -77,14 +77,13 @@ export default function UsersPage() {
     }
   }, [filteredUsers.length, limit, page])
 
-  // Edit Handlers - Added
   const handleEditClick = (user) => {
     setEditingUser(user);
     setFormData({
       name: user.name || '',
       email: user.email || '',
       role: user.role || 'developer',
-      password: '',                    // Password left empty for security
+      password: '',
     });
     setShowEditModal(true);
   };
@@ -127,6 +126,11 @@ export default function UsersPage() {
       alert(error.response?.data?.message || "Failed to create user");
     }
   };
+
+  const goToPage = (newPage) => {
+    if (newPage < 1 || newPage > totalPages) return
+    setPage(newPage)
+  }
 
   return (
     <DashboardLayout>
@@ -198,7 +202,7 @@ export default function UsersPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button 
-                          onClick={() => handleEditClick(user)}           // ← Now functional
+                          onClick={() => handleEditClick(user)}
                           className="rounded-lg p-2 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         >
                           <Edit2 size={18} />
@@ -229,42 +233,56 @@ export default function UsersPage() {
               </tbody>
             </table>
 
-            {/* Pagination */}
+            {/* Pagination - Same as ProjectsPage */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-6 p-4 rounded-lg border bg-card">
-                <button
-                  onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                  disabled={page === 1}
-                  className="px-4 py-2 rounded-md border disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted"
-                >
-                  ← Previous
-                </button>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    Page
-                  </span>
-                  <span className="px-3 py-1 rounded-md bg-primary text-white text-sm">
-                    {page}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    of {totalPages}
-                  </span>
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Page {page} of {totalPages}
                 </div>
+                
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => goToPage(page - 1)}
+                    disabled={page === 1}
+                    className="flex items-center gap-1"
+                  >
+                    <ChevronLeft size={16} />
+                    Previous
+                  </Button>
 
-                <button
-                  onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-                  disabled={page >= totalPages}
-                  className="px-4 py-2 rounded-md border disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted"
-                >
-                  Next →
-                </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                      <Button
+                        key={p}
+                        variant={p === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => goToPage(p)}
+                        className="w-9"
+                      >
+                        {p}
+                      </Button>
+                    ))}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => goToPage(page + 1)}
+                    disabled={page === totalPages}
+                    className="flex items-center gap-1"
+                  >
+                    Next
+                    <ChevronRight size={16} />
+                  </Button>
+                </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Add User Modal - Unchanged */}
+        {/* Add User Modal */}
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-lg">
@@ -330,7 +348,7 @@ export default function UsersPage() {
           </div>
         )}
 
-        {/* Edit User Modal - Added */}
+        {/* Edit User Modal */}
         {showEditModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-lg">
