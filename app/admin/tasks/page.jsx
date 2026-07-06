@@ -292,7 +292,6 @@
 
 
 
-
 'use client'
 
 import { DashboardLayout } from '@/components/layouts/DashboardLayout'
@@ -324,7 +323,7 @@ export default function TasksPage() {
     title: '',
     description: '',
     project: '',
-    assignee: '',
+    assignedUser: '',        // ← Consistent with backend
     priority: 'Medium',
     dueDate: '',
   })
@@ -337,7 +336,7 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(false)
 
   const filteredTasks = tasks.filter((task) => {
-    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = task.title?.toLowerCase().includes(searchTerm.toLowerCase()) || false
     const matchesStatus = statusFilter === 'all' || task.status === statusFilter
     const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter
     return matchesSearch && matchesStatus && matchesPriority
@@ -357,7 +356,7 @@ export default function TasksPage() {
       setTotalPages(Math.ceil((taskData?.total || 0) / 10))
 
       setProjects(projectData?.projects || projectData || [])
-      setUsers(userData?.users || userData || [])
+      setUsers(userData?.users || userData?.data || userData || [])
     } catch (err) {
       console.error('Failed to fetch data:', err)
     } finally {
@@ -374,9 +373,9 @@ export default function TasksPage() {
     e.preventDefault()
     try {
       await createTask(formData)
-      fetchTasks()
       resetForm()
       setShowModal(false)
+      await fetchTasks()           // Strong refresh
     } catch (err) {
       console.error('Create task failed:', err)
     }
@@ -389,7 +388,7 @@ export default function TasksPage() {
       title: task.title || '',
       description: task.description || '',
       project: task.project?._id || task.project || '',
-      assignee: task.assignee?._id || task.assignee || '',
+      assignedUser: task.assignedUser?._id || task.assignedUser || '',
       priority: task.priority || 'Medium',
       dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
     })
@@ -402,10 +401,10 @@ export default function TasksPage() {
 
     try {
       await updateTask(editingTask._id, formData)
-      fetchTasks()
       setShowEditModal(false)
       setEditingTask(null)
       resetForm()
+      await fetchTasks()           // Strong refresh
     } catch (err) {
       console.error('Update task failed:', err)
     }
@@ -416,7 +415,7 @@ export default function TasksPage() {
     if (!confirm('Are you sure you want to delete this task?')) return
     try {
       await deleteTask(id)
-      fetchTasks()
+      await fetchTasks()
     } catch (err) {
       console.error('Delete task failed:', err)
     }
@@ -427,13 +426,12 @@ export default function TasksPage() {
       title: '',
       description: '',
       project: '',
-      assignee: '',
+      assignedUser: '',
       priority: 'Medium',
       dueDate: '',
     })
   }
 
-  // Format due date
   const formatDueDate = (date) => {
     if (!date) return 'No due date'
     const d = new Date(date)
@@ -460,13 +458,13 @@ export default function TasksPage() {
           <div className="flex-1">
             <SearchBar placeholder="Search tasks..." onSearch={setSearchTerm} />
           </div>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-lg border border-border bg-background px-4 py-2 text-sm">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-lg border border-border bg-background px-4 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary">
             <option value="all">All Status</option>
             <option value="Pending">Pending</option>
             <option value="In Progress">In Progress</option>
             <option value="Completed">Completed</option>
           </select>
-          <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} className="rounded-lg border border-border bg-background px-4 py-2 text-sm">
+          <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} className="rounded-lg border border-border bg-background px-4 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary">
             <option value="all">All Priority</option>
             <option value="Low">Low</option>
             <option value="Medium">Medium</option>
@@ -491,12 +489,8 @@ export default function TasksPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {filteredTasks.map((task) => {
-                  const project = projects.find(p => 
-                    p._id === task.project || p.id === task.project
-                  )
-                  const assignee = users.find(u => 
-                    u._id === task.assignee || u.id === task.assignee
-                  )
+                  const project = projects.find(p => p._id === task.project || p.id === task.project)
+                  const assignee = users.find(u => u._id === task.assignedUser || u.id === task.assignedUser)
 
                   return (
                     <tr key={task._id} className="hover:bg-muted/30">
@@ -540,19 +534,34 @@ export default function TasksPage() {
             <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-lg max-h-96 overflow-y-auto">
               <h2 className="text-xl font-semibold text-foreground mb-4">Create New Task</h2>
               <form onSubmit={handleAddTask} className="space-y-4">
-                {/* Same form as before - unchanged for brevity */}
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Task Title</label>
-                  <input type="text" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="Task title" className="w-full rounded-lg border border-border bg-background px-4 py-2" />
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="Task title"
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Description</label>
-                  <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows="2" className="w-full rounded-lg border border-border bg-background px-4 py-2" />
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Task description..."
+                    rows="2"
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">Project</label>
-                    <select value={formData.project} onChange={(e) => setFormData({ ...formData, project: e.target.value })} className="w-full rounded-lg border border-border bg-background px-4 py-2">
+                    <select
+                      value={formData.project}
+                      onChange={(e) => setFormData({ ...formData, project: e.target.value })}
+                      className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
                       <option value="">Select project</option>
                       {projects.map((p) => (
                         <option key={p._id} value={p._id}>{p.name}</option>
@@ -561,7 +570,11 @@ export default function TasksPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">Assignee</label>
-                    <select value={formData.assignee} onChange={(e) => setFormData({ ...formData, assignee: e.target.value })} className="w-full rounded-lg border border-border bg-background px-4 py-2">
+                    <select
+                      value={formData.assignedUser}                   
+                      onChange={(e) => setFormData({ ...formData, assignedUser: e.target.value })} 
+                      className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
                       <option value="">Select user</option>
                       {users.filter(u => u.role !== 'admin').map((u) => (
                         <option key={u._id} value={u._id}>{u.name}</option>
@@ -572,7 +585,11 @@ export default function TasksPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">Priority</label>
-                    <select value={formData.priority} onChange={(e) => setFormData({ ...formData, priority: e.target.value })} className="w-full rounded-lg border border-border bg-background px-4 py-2">
+                    <select
+                      value={formData.priority}
+                      onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                      className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
                       <option value="Low">Low</option>
                       <option value="Medium">Medium</option>
                       <option value="High">High</option>
@@ -580,7 +597,12 @@ export default function TasksPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">Due Date</label>
-                    <input type="date" value={formData.dueDate} onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })} className="w-full rounded-lg border border-border bg-background px-4 py-2" />
+                    <input
+                      type="date"
+                      value={formData.dueDate}
+                      onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                      className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
                   </div>
                 </div>
                 <div className="flex gap-3 pt-4">
@@ -598,7 +620,6 @@ export default function TasksPage() {
             <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-lg max-h-96 overflow-y-auto">
               <h2 className="text-xl font-semibold text-foreground mb-4">Edit Task</h2>
               <form onSubmit={handleUpdateTask} className="space-y-4">
-                {/* Same fields as create modal */}
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Task Title</label>
                   <input type="text" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="w-full rounded-lg border border-border bg-background px-4 py-2" />
@@ -617,7 +638,11 @@ export default function TasksPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">Assignee</label>
-                    <select value={formData.assignee} onChange={(e) => setFormData({ ...formData, assignee: e.target.value })} className="w-full rounded-lg border border-border bg-background px-4 py-2">
+                    <select
+                      value={formData.assignedUser}                    
+                      onChange={(e) => setFormData({ ...formData, assignedUser: e.target.value })} 
+                      className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
                       <option value="">Select user</option>
                       {users.filter(u => u.role !== 'admin').map((u) => (
                         <option key={u._id} value={u._id}>{u.name}</option>
