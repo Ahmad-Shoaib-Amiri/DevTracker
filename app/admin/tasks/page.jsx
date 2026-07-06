@@ -348,8 +348,8 @@ export default function TasksPage() {
       setLoading(true)
       const [taskData, projectData, userData] = await Promise.all([
         getTasks(page, 10),
-        getProjects(),
-        getUsers()
+        getProjects(1, 1000),
+        getUsers(1, 1000)
       ])
 
       setTasks(taskData?.tasks || taskData || [])
@@ -489,14 +489,16 @@ export default function TasksPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {filteredTasks.map((task) => {
-                  const project = projects.find(p => p._id === task.project || p.id === task.project)
-                  const assignee = users.find(u => u._id === task.assignedUser || u.id === task.assignedUser)
+                  const taskProject = typeof task.project === 'object' && task.project !== null ? task.project : null
+                  const taskAssignee = typeof task.assignedUser === 'object' && task.assignedUser !== null ? task.assignedUser : null
+                  const project = taskProject || projects.find(p => p._id === task.project || p.id === task.project)
+                  const assignee = taskAssignee || users.find(u => u._id === task.assignedUser || u.id === task.assignedUser)
 
                   return (
                     <tr key={task._id} className="hover:bg-muted/30">
                       <td className="px-6 py-4 font-medium text-foreground max-w-xs truncate">{task.title}</td>
-                      <td className="px-6 py-4 text-muted-foreground text-xs">{project?.name || 'N/A'}</td>
-                      <td className="px-6 py-4 text-muted-foreground">{assignee?.name || 'Unassigned'}</td>
+                      <td className="px-6 py-4 text-muted-foreground text-xs">{project?.name || task.project?.name || 'N/A'}</td>
+                      <td className="px-6 py-4 text-muted-foreground">{assignee?.name || task.assignedUser?.name || 'Unassigned'}</td>
                       <td className="px-6 py-4">
                         <PriorityBadge priority={task.priority} />
                       </td>
@@ -571,14 +573,19 @@ export default function TasksPage() {
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">Assignee</label>
                     <select
-                      value={formData.assignedUser}                   
-                      onChange={(e) => setFormData({ ...formData, assignedUser: e.target.value })} 
+                      value={formData.assignedUser}
+                      onChange={(e) => setFormData({ ...formData, assignedUser: e.target.value })}
                       className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     >
-                      <option value="">Select user</option>
-                      {users.filter(u => u.role !== 'admin').map((u) => (
-                        <option key={u._id} value={u._id}>{u.name}</option>
-                      ))}
+                      <option value="">Select developer</option>
+                      {users
+                        .filter((u) => {
+                          const role = String(u.role || '').toLowerCase()
+                          return role === 'developer' || role === 'developers'
+                        })
+                        .map((u) => (
+                          <option key={u._id || u.id} value={u._id || u.id}>{u.name || u.fullName || u.username}</option>
+                        ))}
                     </select>
                   </div>
                 </div>
@@ -639,14 +646,19 @@ export default function TasksPage() {
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">Assignee</label>
                     <select
-                      value={formData.assignedUser}                    
-                      onChange={(e) => setFormData({ ...formData, assignedUser: e.target.value })} 
+                      value={formData.assignedUser}
+                      onChange={(e) => setFormData({ ...formData, assignedUser: e.target.value })}
                       className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     >
-                      <option value="">Select user</option>
-                      {users.filter(u => u.role !== 'admin').map((u) => (
-                        <option key={u._id} value={u._id}>{u.name}</option>
-                      ))}
+                      <option value="">Select developer</option>
+                      {users
+                        .filter((u) => {
+                          const role = String(u.role || '').toLowerCase()
+                          return role === 'developer' || role === 'developers'
+                        })
+                        .map((u) => (
+                          <option key={u._id || u.id} value={u._id || u.id}>{u.name || u.fullName || u.username}</option>
+                        ))}
                     </select>
                   </div>
                 </div>
