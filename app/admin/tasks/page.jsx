@@ -5,8 +5,16 @@ import { StatusBadge } from '@/components/common/StatusBadge'
 import { PriorityBadge } from '@/components/common/PriorityBadge'
 import { SearchBar } from '@/components/common/SearchBar'
 import { Button } from '@/components/ui/button'
-import { TASKS, USERS, PROJECTS } from '@/lib/mockData'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import {
+  getTasks,
+  createTask,
+  updateTask,
+  deleteTask,
+} from '@/services/taskServices'
+
+import { getProjects } from '@/services/projectServices'
+import { getUsers } from '@/services/userService'
 import { Edit2, Trash2, Plus } from 'lucide-react'
 
 export default function TasksPage() {
@@ -22,27 +30,66 @@ export default function TasksPage() {
     priority: 'Medium',
     dueDate: '',
   })
+  const [tasks, setTasks] = useState([])
+const [projects, setProjects] = useState([])
+const [users, setUsers] = useState([])
+const [page, setPage] = useState(1)
+const [totalPages, setTotalPages] = useState(1)
 
-  const filteredTasks = TASKS.filter((task) => {
-    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || task.status === statusFilter
-    const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter
-    return matchesSearch && matchesStatus && matchesPriority
+  const filteredTasks = tasks.filter((task) => {
+  const matchesSearch =
+    task.title.toLowerCase().includes(searchTerm.toLowerCase())
+
+  const matchesStatus =
+    statusFilter === 'all' || task.status === statusFilter
+
+  const matchesPriority =
+    priorityFilter === 'all' || task.priority === priorityFilter
+
+  return matchesSearch && matchesStatus && matchesPriority
+})
+
+  const handleAddTask = async (e) => {
+    e.preventDefault()
+
+try {
+  await createTask(formData)
+
+  fetchTasks()
+
+  setFormData({
+    title: '',
+    description: '',
+    project: '',
+    assignee: '',
+    priority: 'Medium',
+    dueDate: '',
   })
 
-  const handleAddTask = (e) => {
-    e.preventDefault()
-    console.log('Adding task:', formData)
-    setFormData({
-      title: '',
-      description: '',
-      project: '',
-      assignee: '',
-      priority: 'Medium',
-      dueDate: '',
-    })
-    setShowModal(false)
+  setShowModal(false)
+} catch (err) {
+  console.error(err)
+}}
+
+  const fetchTasks = async () => {
+  try {
+    const taskData = await getTasks(page, 10)
+    const projectData = await getProjects()
+    const userData = await getUsers()
+
+    setTasks(taskData.tasks)
+    setTotalPages(Math.ceil(taskData.total / 10))
+
+    setProjects(projectData.projects ?? projectData)
+    setUsers(userData.users ?? userData)
+  } catch (err) {
+    console.error(err)
   }
+}
+
+useEffect(() => {
+  fetchTasks()
+}, [page])
 
   return (
     <DashboardLayout>
@@ -106,10 +153,10 @@ export default function TasksPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {filteredTasks.map((task) => {
-                  const assignee = USERS.find((u) => u.id === task.assignee)
-                  const project = PROJECTS.find((p) => p.id === task.project)
+                  const assignee = users.find((u) => u.id === task.assignee)
+                  const project = projects.find((p) => p.id === task.project)
                   return (
-                    <tr key={task.id} className="hover:bg-muted/30">
+                    <tr key={task._id} className="hover:bg-muted/30">
                       <td className="px-6 py-4 font-medium text-foreground max-w-xs truncate">{task.title}</td>
                       <td className="px-6 py-4 text-muted-foreground text-xs">{project?.name || 'N/A'}</td>
                       <td className="px-6 py-4 text-muted-foreground">{assignee?.name}</td>
@@ -173,8 +220,8 @@ export default function TasksPage() {
                       className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     >
                       <option value="">Select project</option>
-                      {PROJECTS.map((p) => (
-                        <option key={p.id} value={p.id}>
+                      {projects.map((p) => (
+                        <option key={p._id} value={p._id}>
                           {p.name}
                         </option>
                       ))}
@@ -188,8 +235,8 @@ export default function TasksPage() {
                       className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     >
                       <option value="">Select user</option>
-                      {USERS.filter(u => u.role !== 'admin').map((u) => (
-                        <option key={u.id} value={u.id}>
+                      {users.filter(u => u.role !== 'admin').map((u) => (
+                        <option key={u._id} value={u._id}>
                           {u.name}
                         </option>
                       ))}
