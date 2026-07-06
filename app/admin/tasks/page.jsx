@@ -15,7 +15,7 @@ import {
 
 import { getProjects } from '@/services/projectServices'
 import { getUsers } from '@/services/userService'
-import { Edit2, Trash2, Plus } from 'lucide-react'
+import { Edit2, Trash2, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function TasksPage() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -31,7 +31,7 @@ export default function TasksPage() {
     project: '',
     assignedUser: '',
     priority: 'Medium',
-    status: 'Pending',           // ← Added default
+    status: 'Pending',
     dueDate: '',
   })
 
@@ -97,7 +97,7 @@ export default function TasksPage() {
       project: task.project?._id || task.project || '',
       assignedUser: task.assignedUser?._id || task.assignedUser || '',
       priority: task.priority || 'Medium',
-      status: task.status || 'Pending',           // ← Added
+      status: task.status || 'Pending',
       dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
     })
     setShowEditModal(true)
@@ -136,7 +136,7 @@ export default function TasksPage() {
       project: '',
       assignedUser: '',
       priority: 'Medium',
-      status: 'Pending',           // ← Added
+      status: 'Pending',
       dueDate: '',
     })
   }
@@ -145,6 +145,11 @@ export default function TasksPage() {
     if (!date) return 'No due date'
     const d = new Date(date)
     return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  }
+
+  const goToPage = (newPage) => {
+    if (newPage < 1 || newPage > totalPages) return
+    setPage(newPage)
   }
 
   return (
@@ -239,6 +244,53 @@ export default function TasksPage() {
           </div>
         </div>
 
+        {/* Pagination - Same style as ProjectsPage */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Page {page} of {totalPages}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => goToPage(page - 1)}
+                disabled={page === 1}
+                className="flex items-center gap-1"
+              >
+                <ChevronLeft size={16} />
+                Previous
+              </Button>
+
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <Button
+                    key={p}
+                    variant={p === page ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => goToPage(p)}
+                    className="w-9"
+                  >
+                    {p}
+                  </Button>
+                ))}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => goToPage(page + 1)}
+                disabled={page === totalPages}
+                className="flex items-center gap-1"
+              >
+                Next
+                <ChevronRight size={16} />
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Create Task Modal */}
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -275,14 +327,9 @@ export default function TasksPage() {
                   </div>
                 </div>
 
-                {/* Status Field Added */}
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
+                  <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary">
                     <option value="Pending">Pending</option>
                     <option value="In Progress">In Progress</option>
                     <option value="Completed">Completed</option>
@@ -349,14 +396,9 @@ export default function TasksPage() {
                   </div>
                 </div>
 
-                {/* Status Field Added */}
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
+                  <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary">
                     <option value="Pending">Pending</option>
                     <option value="In Progress">In Progress</option>
                     <option value="Completed">Completed</option>
