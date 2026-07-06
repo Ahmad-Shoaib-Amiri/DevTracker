@@ -1,4 +1,3 @@
-
 'use client'
 
 import { DashboardLayout } from '@/components/layouts/DashboardLayout'
@@ -18,6 +17,9 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
   const [showModal, setShowModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)     // ← Added
+  const [editingUser, setEditingUser] = useState(null)          // ← Added
+
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const limit = 10
@@ -74,6 +76,34 @@ export default function UsersPage() {
       setPage(1)
     }
   }, [filteredUsers.length, limit, page])
+
+  // Edit Handlers - Added
+  const handleEditClick = (user) => {
+    setEditingUser(user);
+    setFormData({
+      name: user.name || '',
+      email: user.email || '',
+      role: user.role || 'developer',
+      password: '',                    // Password left empty for security
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateUser = async (e) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    try {
+      await updateUser(editingUser._id, formData);
+      await fetchAllUsers();
+      setShowEditModal(false);
+      setEditingUser(null);
+      showNotification("User updated successfully!");
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Failed to update user");
+    }
+  };
 
   const handleAddUser = async (e) => {
     e.preventDefault();
@@ -167,7 +197,10 @@ export default function UsersPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <button className="rounded-lg p-2 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                        <button 
+                          onClick={() => handleEditClick(user)}           // ← Now functional
+                          className="rounded-lg p-2 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        >
                           <Edit2 size={18} />
                         </button>
                         <button
@@ -231,7 +264,7 @@ export default function UsersPage() {
           </div>
         </div>
 
-        {/* Add User Modal */}
+        {/* Add User Modal - Unchanged */}
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-lg">
@@ -290,6 +323,73 @@ export default function UsersPage() {
                   </Button>
                   <Button type="submit" className="flex-1">
                     Add User
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Edit User Modal - Added */}
+        {showEditModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-lg">
+              <h2 className="text-xl font-semibold text-foreground mb-4">Edit User</h2>
+              <form onSubmit={handleUpdateUser} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Name</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Role</label>
+                  <select
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="developer">Developer</option>
+                    <option value="trainee">Trainee</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Password (leave empty to keep current)</label>
+                  <input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder="New password (optional)"
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setEditingUser(null);
+                    }}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="flex-1">
+                    Update User
                   </Button>
                 </div>
               </form>
