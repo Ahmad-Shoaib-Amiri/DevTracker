@@ -1,8 +1,20 @@
 import api from "@/lib/axios";
 
-export const getProjects = async (page = 1, limit = 10) => {
-  const res = await api.get(`/projects?page=${page}&limit=${limit}`);
-  return res.data;
+const buildQuery = (params) => {
+  const searchParams = new URLSearchParams()
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      searchParams.append(key, String(value))
+    }
+  })
+  const queryString = searchParams.toString()
+  return queryString ? `?${queryString}` : ''
+}
+
+export const getProjects = async (page = 1, limit = 10, query = {}) => {
+  const queryString = buildQuery({ page, limit, ...query })
+  const res = await api.get(`/projects${queryString}`)
+  return res.data
 };
 
 export const createProject = async (projectData) => {

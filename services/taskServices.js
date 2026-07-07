@@ -1,9 +1,21 @@
 import api from "@/lib/axios";
 
+const buildQuery = (params) => {
+  const searchParams = new URLSearchParams()
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      searchParams.append(key, String(value))
+    }
+  })
+  const queryString = searchParams.toString()
+  return queryString ? `?${queryString}` : ''
+}
+
 // Get all tasks (with pagination)
-export const getTasks = async (page = 1, limit = 10) => {
-  const res = await api.get(`/tasks?page=${page}&limit=${limit}`);
-  return res.data;
+export const getTasks = async (page = 1, limit = 10, query = {}) => {
+  const queryString = buildQuery({ page, limit, ...query })
+  const res = await api.get(`/tasks${queryString}`)
+  return res.data
 };
 
 // Get single task
