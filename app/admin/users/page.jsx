@@ -93,7 +93,12 @@ export default function UsersPage() {
     if (!editingUser) return;
 
     try {
-      await updateUser(editingUser._id, formData);
+      const payload = { ...formData }
+      if (!payload.password) {
+        delete payload.password
+      }
+
+      await updateUser(editingUser._id, payload);
       await fetchAllUsers();
       setShowEditModal(false);
       setEditingUser(null);
@@ -383,16 +388,6 @@ export default function UsersPage() {
                     <option value="trainee">Trainee</option>
                     <option value="admin">Admin</option>
                   </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Password (leave empty to keep current)</label>
-                  <input
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="New password (optional)"
-                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
                 </div>
                 <div className="flex gap-3 pt-4">
                   <Button
