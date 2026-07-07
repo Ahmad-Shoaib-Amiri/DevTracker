@@ -7,9 +7,17 @@ const normalizeList = (res) => {
 }
 
 export const getTrainees = async () => {
-  const res = await getUsers(1, 1000)
-  const users = normalizeList(res)
-  return users.filter((u) => u.role === 'trainee')
+  try {
+    const res = await getUsers(1, 1000)
+    const users = normalizeList(res)
+    return users.filter((u) => u.role === 'trainee')
+  } catch (err) {
+    if (err.response?.status === 403) {
+      console.warn('Developer is not authorized to fetch all trainees; returning no trainees.', err)
+      return []
+    }
+    throw err
+  }
 }
 
 export default {

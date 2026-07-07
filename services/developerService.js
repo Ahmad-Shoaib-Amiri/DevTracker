@@ -21,9 +21,17 @@ export const getDeveloperTasks = async (developerId) => {
 }
 
 export const getDeveloperTrainees = async (developerId) => {
-  const res = await getUsers(1, 1000)
-  const users = normalizeList(res)
-  return users.filter((u) => u.role === 'trainee' && (u.assignedDeveloper === developerId || u.assignedDeveloper === (developerId + '')))
+  try {
+    const res = await getUsers(1, 1000)
+    const users = normalizeList(res)
+    return users.filter((u) => u.role === 'trainee' && (u.assignedDeveloper === developerId || u.assignedDeveloper === (developerId + '')))
+  } catch (err) {
+    if (err.response?.status === 403) {
+      console.warn('Developer is not authorized to fetch all users; returning no trainees.', err)
+      return []
+    }
+    throw err
+  }
 }
 
 export default {

@@ -16,12 +16,7 @@ export default function TraineesPage() {
 
     const fetch = async () => {
       try {
-        const [trainees, allTrainees] = await Promise.all([
-          developerService.getDeveloperTrainees(user._id || user.id),
-          traineeService.getTrainees(),
-        ])
-
-        // traineeService returns all trainees; developerService returns the ones assigned to this developer
+        const trainees = await developerService.getDeveloperTrainees(user._id || user.id)
         setMyTrainees(trainees || [])
 
         // Progress data is not yet available via API in this repo; keep empty or map if provided
