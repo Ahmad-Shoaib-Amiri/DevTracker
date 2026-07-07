@@ -1,17 +1,40 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { DashboardLayout } from '@/components/layouts/DashboardLayout'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { PriorityBadge } from '@/components/common/PriorityBadge'
 import { useAuth } from '@/context/AuthContext'
-import { TASKS, PROJECTS } from '@/lib/mockData'
-import { useState } from 'react'
+import developerService from '@/services/developerService'
+import { getProjects } from '@/services/projectServices'
 
 export default function DeveloperTasksPage() {
   const { user } = useAuth()
   const [statusFilter, setStatusFilter] = useState('all')
+  const [myTasks, setMyTasks] = useState([])
+  const [projects, setProjects] = useState([])
 
-  const myTasks = TASKS.filter(t => t.assignee === user?.id)
+  useEffect(() => {
+    if (!user) return
+
+    const fetch = async () => {
+      try {
+        const [tasks, projRes] = await Promise.all([
+          developerService.getDeveloperTasks(user._id || user.id),
+          getProjects(1, 1000),
+        ])
+
+        const projectsList = Array.isArray(projRes) ? projRes : projRes.projects || projRes.data || []
+
+        setMyTasks(tasks || [])
+        setProjects(projectsList || [])
+      } catch (err) {
+        console.error('Failed to load developer tasks', err)
+      }
+    }
+
+    fetch()
+  }, [user])
 
   const filteredTasks = myTasks.filter(task => {
     return statusFilter === 'all' || task.status === statusFilter
@@ -68,9 +91,9 @@ export default function DeveloperTasksPage() {
         {/* Tasks List */}
         <div className="space-y-3">
           {filteredTasks.map((task) => {
-            const project = PROJECTS.find(p => p.id === task.project)
+            const project = projects.find(p => (p._id || p.id) === (task.project || task.projectId))
             return (
-              <div key={task.id} className="rounded-lg border border-border bg-card p-4 hover:shadow-md transition-shadow">
+              <div key={task._id || task.id} className="rounded-lg border border-border bg-card p-4 hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <h3 className="font-semibold text-foreground">{task.title}</h3>

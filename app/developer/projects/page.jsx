@@ -1,13 +1,38 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { DashboardLayout } from '@/components/layouts/DashboardLayout'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { useAuth } from '@/context/AuthContext'
-import { PROJECTS, TASKS } from '@/lib/mockData'
+import developerService from '@/services/developerService'
+import { getTasks } from '@/services/taskServices'
 
 export default function DeveloperProjectsPage() {
   const { user } = useAuth()
-  const myProjects = PROJECTS.filter(p => p.developers.includes(user?.id))
+  const [myProjects, setMyProjects] = useState([])
+  const [allTasks, setAllTasks] = useState([])
+
+  useEffect(() => {
+    if (!user) return
+
+    const fetch = async () => {
+      try {
+        const [projects, tasksRes] = await Promise.all([
+          developerService.getDeveloperProjects(user._id || user.id),
+          getTasks(1, 1000),
+        ])
+
+        const tasks = Array.isArray(tasksRes) ? tasksRes : tasksRes.tasks || tasksRes.data || []
+
+        setMyProjects(projects || [])
+        setAllTasks(tasks || [])
+      } catch (err) {
+        console.error('Failed to load developer projects', err)
+      }
+    }
+
+    fetch()
+  }, [user])
 
   return (
     <DashboardLayout>
@@ -21,11 +46,11 @@ export default function DeveloperProjectsPage() {
         {/* Projects Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {myProjects.map((project) => {
-            const projectTasks = TASKS.filter(t => t.project === project.id)
+            const projectTasks = allTasks.filter(t => t.project === (project._id || project.id))
             const completedTasks = projectTasks.filter(t => t.status === 'Completed').length
 
             return (
-              <div key={project.id} className="rounded-lg border border-border bg-card p-6 hover:shadow-lg transition-shadow">
+              <div key={project._id || project.id} className="rounded-lg border border-border bg-card p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <h3 className="text-lg font-semibold text-foreground flex-1">{project.name}</h3>
                   <StatusBadge status={project.status} />
@@ -37,12 +62,12 @@ export default function DeveloperProjectsPage() {
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-medium text-muted-foreground">Progress</p>
-                    <p className="text-sm font-bold text-foreground">{project.progress}%</p>
+                    <p className="text-sm font-bold text-foreground">{project.progress ?? 0}%</p>
                   </div>
                   <div className="h-2 rounded-full bg-muted overflow-hidden">
                     <div
                       className="h-2 rounded-full bg-primary"
-                      style={{ width: `${project.progress}%` }}
+                      style={{ width: `${project.progress ?? 0}%` }}
                     />
                   </div>
                 </div>

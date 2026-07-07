@@ -1,27 +1,48 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { DashboardLayout } from '@/components/layouts/DashboardLayout'
 import { DashboardCard } from '@/components/common/DashboardCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { useAuth } from '@/context/AuthContext'
-import { USERS, PROJECTS, TASKS, TRAINEE_PROGRESS } from '@/lib/mockData'
+import developerService from '@/services/developerService'
 import { Briefcase, CheckSquare, Users, TrendingUp } from 'lucide-react'
 
 export default function DeveloperDashboard() {
   const { user } = useAuth()
-  
-  // Filter tasks and projects for this developer
-  const myTasks = TASKS.filter(t => t.assignee === user?.id)
-  const myProjects = PROJECTS.filter(p => p.developers.includes(user?.id))
-  const myTrainees = USERS.filter(u => u.role === 'trainee' && u.assignedDeveloper === user?.id)
+  const [myTasks, setMyTasks] = useState([])
+  const [myProjects, setMyProjects] = useState([])
+  const [myTrainees, setMyTrainees] = useState([])
+
+  useEffect(() => {
+    if (!user) return
+
+    const fetch = async () => {
+      try {
+        const [projects, tasks, trainees] = await Promise.all([
+          developerService.getDeveloperProjects(user._id || user.id),
+          developerService.getDeveloperTasks(user._id || user.id),
+          developerService.getDeveloperTrainees(user._id || user.id),
+        ])
+
+        setMyProjects(projects || [])
+        setMyTasks(tasks || [])
+        setMyTrainees(trainees || [])
+      } catch (err) {
+        console.error('Failed to fetch developer dashboard data', err)
+      }
+    }
+
+    fetch()
+  }, [user])
 
   const completedTasks = myTasks.filter(t => t.status === 'Completed').length
   const completionRate = myTasks.length > 0 ? Math.round((completedTasks / myTasks.length) * 100) : 0
 
   const recentTasks = myTasks.slice(0, 5)
-  const traineeStats = TRAINEE_PROGRESS.filter(t => 
-    myTrainees.some(trainee => trainee.id === t.traineeId)
-  )
+
+  // For trainee stats we expect an API-driven progress object; fall back to empty list
+  const traineeStats = []
 
   return (
     <DashboardLayout>
@@ -46,7 +67,7 @@ export default function DeveloperDashboard() {
           <div className="space-y-3">
             {recentTasks.length > 0 ? (
               recentTasks.map((task) => (
-                <div key={task.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/30">
+                <div key={task._id || task.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/30">
                   <div className="flex-1">
                     <p className="font-medium text-foreground">{task.title}</p>
                     <p className="text-xs text-muted-foreground mt-1">{task.description}</p>
@@ -68,17 +89,17 @@ export default function DeveloperDashboard() {
           <div className="grid gap-4 md:grid-cols-2">
             {myProjects.length > 0 ? (
               myProjects.map((project) => (
-                <div key={project.id} className="border border-border rounded-lg p-4 hover:bg-muted/30">
+                <div key={project._id || project.id} className="border border-border rounded-lg p-4 hover:bg-muted/30">
                   <h3 className="font-semibold text-foreground mb-2">{project.name}</h3>
                   <p className="text-xs text-muted-foreground mb-3">{project.description}</p>
                   <div className="flex items-center justify-between mb-3">
                     <StatusBadge status={project.status} />
-                    <span className="text-xs font-bold">{project.progress}%</span>
+                    <span className="text-xs font-bold">{project.progress ?? 0}%</span>
                   </div>
                   <div className="h-2 rounded-full bg-muted overflow-hidden">
                     <div
                       className="h-2 rounded-full bg-primary"
-                      style={{ width: `${project.progress}%` }}
+                      style={{ width: `${project.progress ?? 0}%` }}
                     />
                   </div>
                 </div>

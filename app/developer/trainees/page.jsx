@@ -1,12 +1,38 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { DashboardLayout } from '@/components/layouts/DashboardLayout'
 import { useAuth } from '@/context/AuthContext'
-import { USERS, TRAINEE_PROGRESS } from '@/lib/mockData'
+import developerService from '@/services/developerService'
+import traineeService from '@/services/traineeService'
 
 export default function TraineesPage() {
   const { user } = useAuth()
-  const myTrainees = USERS.filter(u => u.role === 'trainee' && u.assignedDeveloper === user?.id)
+  const [myTrainees, setMyTrainees] = useState([])
+  const [traineeProgress, setTraineeProgress] = useState([])
+
+  useEffect(() => {
+    if (!user) return
+
+    const fetch = async () => {
+      try {
+        const [trainees, allTrainees] = await Promise.all([
+          developerService.getDeveloperTrainees(user._id || user.id),
+          traineeService.getTrainees(),
+        ])
+
+        // traineeService returns all trainees; developerService returns the ones assigned to this developer
+        setMyTrainees(trainees || [])
+
+        // Progress data is not yet available via API in this repo; keep empty or map if provided
+        setTraineeProgress([])
+      } catch (err) {
+        console.error('Failed to fetch trainees', err)
+      }
+    }
+
+    fetch()
+  }, [user])
 
   return (
     <DashboardLayout>
@@ -21,9 +47,9 @@ export default function TraineesPage() {
         {myTrainees.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2">
             {myTrainees.map((trainee) => {
-              const progress = TRAINEE_PROGRESS.find(p => p.traineeId === trainee.id)
+              const progress = traineeProgress.find(p => p.traineeId === (trainee._id || trainee.id))
               return (
-                <div key={trainee.id} className="rounded-lg border border-border bg-card p-6">
+                <div key={trainee._id || trainee.id} className="rounded-lg border border-border bg-card p-6">
                   <div className="mb-6">
                     <h3 className="text-lg font-semibold text-foreground">{trainee.name}</h3>
                     <p className="text-sm text-muted-foreground">{trainee.email}</p>
