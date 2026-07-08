@@ -50,17 +50,26 @@ export default function TasksPage() {
   })
 
   // Fetch all data
-  const fetchTasks = async () => {
+  const fetchTasks = async (requestedPage = page) => {
     try {
       setLoading(true)
       const [taskData, projectData, userData] = await Promise.all([
-        getTasks(page, 10),
+        getTasks(requestedPage, 10),
         getProjects(1, 1000),
         getUsers(1, 1000)
       ])
 
-      setTasks(taskData?.tasks || taskData || [])
-      setTotalPages(Math.ceil((taskData?.total || 0) / 10))
+      const resolvedTasks = Array.isArray(taskData?.tasks)
+        ? taskData.tasks
+        : Array.isArray(taskData)
+          ? taskData
+          : []
+
+      const totalCount = taskData?.total ?? taskData?.totalItems ?? taskData?.pagination?.total ?? resolvedTasks.length
+      const resolvedTotalPages = taskData?.totalPages ?? taskData?.pages ?? taskData?.pagination?.totalPages ?? (totalCount > 0 ? Math.ceil(totalCount / 10) : 1)
+
+      setTasks(resolvedTasks)
+      setTotalPages(Math.max(1, Number(resolvedTotalPages) || 1))
 
       setProjects(projectData?.projects || projectData || [])
       setUsers(userData?.users || userData?.data || userData || [])
@@ -72,7 +81,7 @@ export default function TasksPage() {
   }
 
   useEffect(() => {
-    fetchTasks()
+    fetchTasks(page)
   }, [page])
 
   // Create Task
@@ -82,7 +91,8 @@ export default function TasksPage() {
       await createTask(formData)
       resetForm()
       setShowModal(false)
-      await fetchTasks()
+      setPage(1)
+      await fetchTasks(1)
     } catch (err) {
       console.error('Create task failed:', err)
     }
@@ -112,7 +122,8 @@ export default function TasksPage() {
       setShowEditModal(false)
       setEditingTask(null)
       resetForm()
-      await fetchTasks()
+      setPage(1)
+      await fetchTasks(1)
     } catch (err) {
       console.error('Update task failed:', err)
     }
@@ -123,7 +134,8 @@ export default function TasksPage() {
     if (!confirm('Are you sure you want to delete this task?')) return
     try {
       await deleteTask(id)
-      await fetchTasks()
+      setPage(1)
+      await fetchTasks(1)
     } catch (err) {
       console.error('Delete task failed:', err)
     }

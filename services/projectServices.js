@@ -1,4 +1,5 @@
 import api from "@/lib/axios";
+import { PROJECTS } from '@/lib/mockData'
 
 const buildQuery = (params) => {
   const searchParams = new URLSearchParams()
@@ -11,10 +12,24 @@ const buildQuery = (params) => {
   return queryString ? `?${queryString}` : ''
 }
 
+const fallbackProjects = PROJECTS.map((project) => ({
+  ...project,
+  _id: project.id,
+}))
+
 export const getProjects = async (page = 1, limit = 10, query = {}) => {
-  const queryString = buildQuery({ page, limit, ...query })
-  const res = await api.get(`/projects${queryString}`)
-  return res.data
+  if (!process.env.NEXT_PUBLIC_API_URL) {
+    return { projects: fallbackProjects.slice((page - 1) * limit, page * limit), total: fallbackProjects.length }
+  }
+
+  try {
+    const queryString = buildQuery({ page, limit, ...query })
+    const res = await api.get(`/projects${queryString}`)
+    return res.data
+  } catch (error) {
+    console.warn('Projects API unavailable, using fallback data.', error)
+    return { projects: fallbackProjects.slice((page - 1) * limit, page * limit), total: fallbackProjects.length }
+  }
 };
 
 export const createProject = async (projectData) => {
