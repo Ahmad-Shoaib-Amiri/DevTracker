@@ -1,7 +1,7 @@
 import api from '@/lib/axios'
 
 export const login = async (credentials) => {
-  const response = await api.post('/api/auth/login', credentials)
+  const response = await api.post('/auth/login', credentials)
   return response.data
 }
 
@@ -11,6 +11,6 @@ export const register = async (userData) => {
 }
 
 export const getProfile = async () => {
-  const response = await api.get('/auth/profile')
+  const response = await api.get('/users/profile')
   return response.data
 }
