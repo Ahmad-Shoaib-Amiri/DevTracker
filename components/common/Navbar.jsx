@@ -102,7 +102,7 @@ export function Navbar() {
               className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-muted"
             >
               <img
-                src={user?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=user'}
+                src={user?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=man&gender=male&facialHairProbability=100'}
                 alt={user?.name}
                 className="size-8 rounded-full"
               />
